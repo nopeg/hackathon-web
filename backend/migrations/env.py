@@ -2,6 +2,10 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
+
+from app.models.userModel import User
+from app.models.hackathonModel import Hackathon
+from app.models.participantModel import Participant
 from app.database import BaseModel
 from app.core.config import settingsInstance
 
