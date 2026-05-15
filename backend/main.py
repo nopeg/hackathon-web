@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# from app.routers import auth, hackathon
+from app.routers import authRouter
 
 def create_application() -> FastAPI:
     fast_api_app = FastAPI(title="Hackathon Platform API")
@@ -13,7 +13,7 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # fast_api_app.include_router(auth.router)
+    fast_api_app.include_router(authRouter.router)
     return fast_api_app
 
 app = create_application()

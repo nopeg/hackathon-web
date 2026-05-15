@@ -5,19 +5,17 @@ from app.core.config import settingsInstance
 
 databaseUrl = settingsInstance.DATABASE_URL
 
-engineInstance = create_engine(databaseUrl)
-
+engine = create_engine(settingsInstance.DATABASE_URL)
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engineInstance
+    bind=engine
 )
-
 BaseModel = declarative_base()
 
-def getDatabaseConnection():
-    databaseSession = SessionLocal()
+def getDB():
+    db = SessionLocal()
     try:
-        yield databaseSession
+        yield db
     finally:
-        databaseSession.close()
+        db.close()
