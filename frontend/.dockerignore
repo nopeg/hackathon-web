@@ -1,0 +1,14 @@
+node_modules
+build
+dist
+.git
+.gitignore
+.dockerignore
+*.crt
+*.key
+*.pem
+Dockerfile
+docker-compose.yml
+.vscode
+.idea
+npm-debug.log
