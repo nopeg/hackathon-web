@@ -2,22 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import authRouter
 
-def create_application() -> FastAPI:
-    fast_api_app = FastAPI(title="Hackathon Platform API")
+app = FastAPI(title="Hackathon Platform API", version="0.1.0")
 
-    fast_api_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://localhost"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    fast_api_app.include_router(authRouter.router)
-    return fast_api_app
+app.include_router(authRouter.router)
 
-app = create_application()
-
-@app.get("/health")
-async def check_health():
-    return {"status": "ok"}
+@app.get("/health", tags=["default"])
+def checkHealth():
+    return {"status": "ok"} 

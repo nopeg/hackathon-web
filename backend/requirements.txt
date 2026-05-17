@@ -8,5 +8,5 @@ pydantic-settings
 email-validator
 python-dotenv
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
 python-multipart

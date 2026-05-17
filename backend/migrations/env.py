@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 from app.core.config import settingsInstance
-from app.database import BaseModel
+from app.database import Base
 from app.models.userModel import User
 from app.models.hackathonModel import Hackathon
 from app.models.participantModel import Participant
@@ -15,9 +15,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = BaseModel.metadata
+target_metadata = Base.metadata
 
-config.set_main_option("sqlalchemy.url", settingsInstance.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settingsInstance.databaseUrl)
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")

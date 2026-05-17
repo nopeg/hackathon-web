@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, PrimaryKeyConstraint
 from sqlalchemy.sql import func
-from app.database import BaseModel
+from app.database import Base
 
-class Participant(BaseModel):
+class Participant(Base):
     __tablename__ = "hackathon_participants"
 
     hackathonId = Column(Integer, ForeignKey("hackathons.id", ondelete="CASCADE"), nullable=False)

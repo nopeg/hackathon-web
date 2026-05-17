@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from app.database import BaseModel
+from app.database import Base
 
-class Hackathon(BaseModel):
+class Hackathon(Base):
     __tablename__ = "hackathons"
 
     id = Column(Integer, primary_key=True, index=True)

@@ -3,15 +3,15 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from app.core.config import settingsInstance
 
-databaseUrl = settingsInstance.DATABASE_URL
+databaseUrl = settingsInstance.databaseUrl
 
-engine = create_engine(settingsInstance.DATABASE_URL)
+engine = create_engine(settingsInstance.databaseUrl)
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine
 )
-BaseModel = declarative_base()
+Base = declarative_base()
 
 def getDB():
     db = SessionLocal()

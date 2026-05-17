@@ -1,42 +1,28 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:15-alpine
-    container_name: hackathon_db_container
-    restart: always
-    environment:
-      POSTGRES_USER: ${DB_USER:-hackathon}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-      POSTGRES_DB: ${DB_NAME:-hackathon_db}
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-hackathon} -d ${DB_NAME:-hackathon_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=hackathon
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: hackathon_backend_container
-    restart: always
-    env_file:
-      - ./backend/.env
-    environment:
-      - DATABASE_URL=postgresql://${DB_USER:-hackathon}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-hackathon_db}
-    depends_on:
-      db:
-        condition: service_healthy
+    build: ./backend
     volumes:
       - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
 
   nginx:
     image: nginx:latest
-    container_name: hackathon_nginx_container
-    restart: always
     ports:
       - "80:80"
       - "443:443"
