@@ -1,0 +1,58 @@
+from pydantic import BaseModel, ConfigDict
+from datetime import datetime
+from typing import Optional, List
+from app.models.hackathonModel import VotingType, ContextRole
+
+class HackathonBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    prizePool: Optional[str] = None
+    location: str
+    isOnline: bool = True
+    isPrivate: bool = False
+    votingType: VotingType = VotingType.ALL_USERS
+    startDate: datetime
+    endDate: datetime
+    registrationDeadline: datetime
+    maxParticipants: Optional[int] = None
+    minTeamSize: int = 1
+    maxTeamSize: int = 5
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+class HackathonCreate(HackathonBase):
+    pass
+
+class HackathonUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    prizePool: Optional[str] = None
+    location: Optional[str] = None
+    isOnline: Optional[bool] = None
+    isPrivate: Optional[bool] = None
+    votingType: Optional[VotingType] = None
+    startDate: Optional[datetime] = None
+    endDate: Optional[datetime] = None
+    registrationDeadline: Optional[datetime] = None
+    maxParticipants: Optional[int] = None
+    minTeamSize: Optional[int] = None
+    maxTeamSize: Optional[int] = None
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+class HackathonResponse(HackathonBase):
+    id: int
+    currentParticipants: int
+    organizerId: int
+
+class ParticipantResponse(BaseModel):
+    id: int
+    hackathonId: int
+    userId: int
+    teamId: Optional[int] = None
+    contextRole: ContextRole
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+class AllowUserRequest(BaseModel):
+    username: str

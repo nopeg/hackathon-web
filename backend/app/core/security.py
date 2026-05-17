@@ -6,7 +6,7 @@ from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
 from app.core.config import settingsInstance
 
-oauth2Scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2Scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def hashPassword(password: str) -> str:
     passwordBytes = password.encode('utf-8')

@@ -3,9 +3,9 @@ from sqlalchemy import Column, Integer, String, Enum
 from app.database import Base
 
 class UserRole(str, enum.Enum):
-    USER = "user"
-    MODERATOR = "moderator"
-    ADMIN = "admin"
+    USER = "USER"
+    MODERATOR = "MODERATOR"
+    ADMIN = "ADMIN"
 
 class User(Base):
     __tablename__ = "users"
