@@ -26,16 +26,13 @@ class Hackathon(Base):
     votingType = Column(String, default="ALL_USERS", nullable=False)
     startDate = Column(DateTime, nullable=False)
     endDate = Column(DateTime, nullable=False)
-    registrationDeadline = Column(DateTime, nullable=False)
+    registrationStart = Column(DateTime, nullable=False)
     maxParticipants = Column(Integer, nullable=True)
     currentParticipants = Column(Integer, default=0)
     organizerId = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     minTeamSize = Column(Integer, default=1)
     maxTeamSize = Column(Integer, default=5)
-
-    teams = relationship("Team", back_populates="hackathon", cascade="all, delete-orphan")
-    participants = relationship("Participant", back_populates="hackathon", cascade="all, delete-orphan")
-    allow_list = relationship("HackathonAllowList", back_populates="hackathon", cascade="all, delete-orphan")
+    imageUrl = Column(String, nullable=True)
 
 class Participant(Base):
     __tablename__ = "participants"
@@ -45,11 +42,6 @@ class Participant(Base):
     userId = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     teamId = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     contextRole = Column(String, default="PARTICIPANT", nullable=False)
-    registrationDate = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    hackathon = relationship("Hackathon", back_populates="participants")
-    user = relationship("User", back_populates="participations")
-    team = relationship("Team", back_populates="members")
 
 class Team(Base):
     __tablename__ = "teams"
@@ -61,15 +53,9 @@ class Team(Base):
     creatorId = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     createdAt = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    hackathon = relationship("Hackathon", back_populates="teams")
-    members = relationship("Participant", back_populates="team")
-
 class HackathonAllowList(Base):
     __tablename__ = "hackathon_allow_list"
 
     id = Column(Integer, primary_key=True, index=True)
     hackathonId = Column(Integer, ForeignKey("hackathons.id", ondelete="CASCADE"), nullable=False)
     userId = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-
-    hackathon = relationship("Hackathon", back_populates="allow_list")
-    user = relationship("User")

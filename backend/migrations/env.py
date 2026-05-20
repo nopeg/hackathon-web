@@ -10,6 +10,7 @@ from app.core.config import settingsInstance
 from app.database import Base
 from app.models.userModel import User
 from app.models.hackathonModel import Hackathon, Participant, Team, HackathonAllowList
+from app.models.verificationToken import VerificationToken
 
 config = context.config
 

@@ -1,8 +1,8 @@
 """initial_schema
 
-Revision ID: 238a911f9ba3
+Revision ID: b9cc3d5235d5
 Revises: None
-Create Date: 2026-05-20 16:46:16.494207
+Create Date: 2026-05-20 17:09:06.990980
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '238a911f9ba3'
+revision = 'b9cc3d5235d5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,6 +24,7 @@ def upgrade() -> None:
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('hashedPassword', sa.String(), nullable=False),
     sa.Column('role', sa.Enum('USER', 'MODERATOR', 'ADMIN', name='userrole'), nullable=False),
+    sa.Column('is_verified', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
@@ -40,16 +41,27 @@ def upgrade() -> None:
     sa.Column('votingType', sa.String(), nullable=False),
     sa.Column('startDate', sa.DateTime(), nullable=False),
     sa.Column('endDate', sa.DateTime(), nullable=False),
-    sa.Column('registrationDeadline', sa.DateTime(), nullable=False),
+    sa.Column('registrationStart', sa.DateTime(), nullable=False),
     sa.Column('maxParticipants', sa.Integer(), nullable=True),
     sa.Column('currentParticipants', sa.Integer(), nullable=True),
     sa.Column('organizerId', sa.Integer(), nullable=False),
     sa.Column('minTeamSize', sa.Integer(), nullable=True),
     sa.Column('maxTeamSize', sa.Integer(), nullable=True),
+    sa.Column('imageUrl', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['organizerId'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_hackathons_id'), 'hackathons', ['id'], unique=False)
+    op.create_table('verification_tokens',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('userEmail', sa.String(), nullable=False),
+    sa.Column('token', sa.String(), nullable=False),
+    sa.Column('expiresAt', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['userEmail'], ['users.email'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_verification_tokens_id'), 'verification_tokens', ['id'], unique=False)
+    op.create_index(op.f('ix_verification_tokens_token'), 'verification_tokens', ['token'], unique=True)
     op.create_table('hackathon_allow_list',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('hackathonId', sa.Integer(), nullable=False),
@@ -78,7 +90,6 @@ def upgrade() -> None:
     sa.Column('userId', sa.Integer(), nullable=False),
     sa.Column('teamId', sa.Integer(), nullable=True),
     sa.Column('contextRole', sa.String(), nullable=False),
-    sa.Column('registrationDate', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['hackathonId'], ['hackathons.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['teamId'], ['teams.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['userId'], ['users.id'], ondelete='CASCADE'),
@@ -96,6 +107,9 @@ def downgrade() -> None:
     op.drop_table('teams')
     op.drop_index(op.f('ix_hackathon_allow_list_id'), table_name='hackathon_allow_list')
     op.drop_table('hackathon_allow_list')
+    op.drop_index(op.f('ix_verification_tokens_token'), table_name='verification_tokens')
+    op.drop_index(op.f('ix_verification_tokens_id'), table_name='verification_tokens')
+    op.drop_table('verification_tokens')
     op.drop_index(op.f('ix_hackathons_id'), table_name='hackathons')
     op.drop_table('hackathons')
     op.drop_index(op.f('ix_users_username'), table_name='users')

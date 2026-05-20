@@ -21,15 +21,15 @@ def getCurrentUser(username: str = Depends(getCurrentUsername), db: Session = De
 def createHackathon(hackathonIn: HackathonCreate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
     if hackathonIn.minTeamSize > hackathonIn.maxTeamSize:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="minTeamSize cannot be greater than maxTeamSize")
-        
+
     now = datetime.now(timezone.utc)
-    reg_deadline = hackathonIn.registrationDeadline
-    if reg_deadline.tzinfo is None:
-        reg_deadline = reg_deadline.replace(tzinfo=timezone.utc)
-        
-    if reg_deadline < now:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration deadline cannot be in the past")
-        
+    reg_start = hackathonIn.registrationStart
+    if reg_start.tzinfo is None:
+        reg_start = reg_start.replace(tzinfo=timezone.utc)
+
+    if reg_start < now:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration start cannot be in the past")
+
     newHackathon = Hackathon(
         title=hackathonIn.title,
         description=hackathonIn.description,
@@ -40,11 +40,12 @@ def createHackathon(hackathonIn: HackathonCreate, db: Session = Depends(getDB), 
         votingType=hackathonIn.votingType,
         startDate=hackathonIn.startDate,
         endDate=hackathonIn.endDate,
-        registrationDeadline=hackathonIn.registrationDeadline,
+        registrationStart=hackathonIn.registrationStart,
         maxParticipants=hackathonIn.maxParticipants,
         organizerId=currentUser.id,
         minTeamSize=hackathonIn.minTeamSize,
-        maxTeamSize=hackathonIn.maxTeamSize
+        maxTeamSize=hackathonIn.maxTeamSize,
+        imageUrl=hackathonIn.imageUrl
     )
     db.add(newHackathon)
     db.commit()
@@ -67,11 +68,11 @@ def updateHackathon(id: int, hackathonIn: HackathonUpdate, db: Session = Depends
     hackathon = db.query(Hackathon).filter(Hackathon.id == id).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")
-        
+
     if hackathon.organizerId != currentUser.id and currentUser.role.upper() not in ["MODERATOR", "ADMIN"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-        
-    updateData = hackathonIn.dict(exclude_unset=True)
+
+    updateData = hackathonIn.model_dump(exclude_unset=True)
     if "minTeamSize" in updateData or "maxTeamSize" in updateData:
         minSize = updateData.get("minTeamSize", hackathon.minTeamSize)
         maxSize = updateData.get("maxTeamSize", hackathon.maxTeamSize)
@@ -80,7 +81,7 @@ def updateHackathon(id: int, hackathonIn: HackathonUpdate, db: Session = Depends
 
     for key, value in updateData.items():
         setattr(hackathon, key, value)
-        
+
     db.commit()
     db.refresh(hackathon)
     return hackathon
@@ -90,10 +91,10 @@ def deleteHackathon(id: int, db: Session = Depends(getDB), currentUser: User = D
     hackathon = db.query(Hackathon).filter(Hackathon.id == id).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")
-        
+
     if hackathon.organizerId != currentUser.id and currentUser.role.upper() not in ["MODERATOR", "ADMIN"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-        
+
     db.delete(hackathon)
     db.commit()
     return None
@@ -103,31 +104,33 @@ def registerForHackathon(id: int, db: Session = Depends(getDB), currentUser: Use
     hackathon = db.query(Hackathon).filter(Hackathon.id == id).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")
-        
+
     if hackathon.organizerId == currentUser.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Creators cannot participate in their own hackathons")
-        
-    now = datetime.now(timezone.utc)
-    target_deadline = hackathon.registrationDeadline
-    if target_deadline.tzinfo is None:
-        target_deadline = target_deadline.replace(tzinfo=timezone.utc)
 
-    if now > target_deadline:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration deadline has passed")
-        
+    now = datetime.now(timezone.utc)
+    reg_start = hackathon.registrationStart
+    if reg_start.tzinfo is None:
+        reg_start = reg_start.replace(tzinfo=timezone.utc)
+
+    if now < reg_start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration has not started yet")
+    if now > hackathon.startDate:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration closed, hackathon already started")
+
     alreadyRegistered = db.query(Participant).filter(
         Participant.hackathonId == id,
         Participant.userId == currentUser.id
     ).first()
     if alreadyRegistered:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are already registered for this hackathon")
-        
+
     if hackathon.maxParticipants is not None and hackathon.currentParticipants >= hackathon.maxParticipants:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Hackathon is full")
-        
+
     participant = Participant(hackathonId=id, userId=currentUser.id, teamId=None, contextRole="PARTICIPANT")
     hackathon.currentParticipants += 1
-    
+
     db.add(participant)
     db.commit()
     db.refresh(participant)

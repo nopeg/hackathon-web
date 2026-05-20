@@ -13,10 +13,11 @@ class HackathonBase(BaseModel):
     votingType: VotingType = VotingType.ALL_USERS
     startDate: datetime
     endDate: datetime
-    registrationDeadline: datetime
+    registrationStart: datetime
     maxParticipants: Optional[int] = None
     minTeamSize: int = 1
     maxTeamSize: int = 5
+    imageUrl: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
@@ -33,10 +34,11 @@ class HackathonUpdate(BaseModel):
     votingType: Optional[VotingType] = None
     startDate: Optional[datetime] = None
     endDate: Optional[datetime] = None
-    registrationDeadline: Optional[datetime] = None
+    registrationStart: Optional[datetime] = None
     maxParticipants: Optional[int] = None
     minTeamSize: Optional[int] = None
     maxTeamSize: Optional[int] = None
+    imageUrl: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
