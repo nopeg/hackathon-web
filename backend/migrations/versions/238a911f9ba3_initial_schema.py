@@ -1,8 +1,8 @@
-"""role_update
+"""initial_schema
 
-Revision ID: 78a332bb6ff7
-Revises: 8efd5d7da51c
-Create Date: 2026-05-17 21:14:20.558227
+Revision ID: 238a911f9ba3
+Revises: None
+Create Date: 2026-05-20 16:46:16.494207
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '78a332bb6ff7'
-down_revision = '8efd5d7da51c'
+revision = '238a911f9ba3'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -37,7 +37,7 @@ def upgrade() -> None:
     sa.Column('location', sa.String(), nullable=False),
     sa.Column('isOnline', sa.Boolean(), nullable=True),
     sa.Column('isPrivate', sa.Boolean(), nullable=True),
-    sa.Column('votingType', sa.Enum('JUDGES', 'PARTICIPANTS', 'ALL_USERS', name='votingtype'), nullable=False),
+    sa.Column('votingType', sa.String(), nullable=False),
     sa.Column('startDate', sa.DateTime(), nullable=False),
     sa.Column('endDate', sa.DateTime(), nullable=False),
     sa.Column('registrationDeadline', sa.DateTime(), nullable=False),
@@ -59,14 +59,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_hackathon_allow_list_id'), 'hackathon_allow_list', ['id'], unique=False)
-    op.create_table('hackathon_participants',
-    sa.Column('hackathonId', sa.Integer(), nullable=False),
-    sa.Column('userId', sa.Integer(), nullable=False),
-    sa.Column('registrationDate', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
-    sa.ForeignKeyConstraint(['hackathonId'], ['hackathons.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['userId'], ['users.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('hackathonId', 'userId')
-    )
     op.create_table('teams',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
@@ -85,7 +77,8 @@ def upgrade() -> None:
     sa.Column('hackathonId', sa.Integer(), nullable=False),
     sa.Column('userId', sa.Integer(), nullable=False),
     sa.Column('teamId', sa.Integer(), nullable=True),
-    sa.Column('contextRole', sa.Enum('PARTICIPANT', 'JUDGE', name='contextrole'), nullable=False),
+    sa.Column('contextRole', sa.String(), nullable=False),
+    sa.Column('registrationDate', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['hackathonId'], ['hackathons.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['teamId'], ['teams.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['userId'], ['users.id'], ondelete='CASCADE'),
@@ -101,7 +94,6 @@ def downgrade() -> None:
     op.drop_table('participants')
     op.drop_index(op.f('ix_teams_id'), table_name='teams')
     op.drop_table('teams')
-    op.drop_table('hackathon_participants')
     op.drop_index(op.f('ix_hackathon_allow_list_id'), table_name='hackathon_allow_list')
     op.drop_table('hackathon_allow_list')
     op.drop_index(op.f('ix_hackathons_id'), table_name='hackathons')
