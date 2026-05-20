@@ -1,7 +1,6 @@
 import enum
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
 from app.database import Base
 
 class VotingType(str, enum.Enum):
@@ -26,13 +25,13 @@ class Hackathon(Base):
     votingType = Column(String, default="ALL_USERS", nullable=False)
     startDate = Column(DateTime, nullable=False)
     endDate = Column(DateTime, nullable=False)
-    registrationStart = Column(DateTime, nullable=False)
+    registrationStart = Column("registration_start", DateTime, nullable=False)
     maxParticipants = Column(Integer, nullable=True)
     currentParticipants = Column(Integer, default=0)
     organizerId = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     minTeamSize = Column(Integer, default=1)
     maxTeamSize = Column(Integer, default=5)
-    imageUrl = Column(String, nullable=True)
+    imageUrl = Column("image_url", String, nullable=True)
 
 class Participant(Base):
     __tablename__ = "participants"

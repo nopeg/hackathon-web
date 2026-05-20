@@ -7,18 +7,18 @@ from app.database import getDB
 from app.models.userModel import User
 from app.models.hackathonModel import Hackathon, Participant
 from app.schemas.hackathonSchema import HackathonCreate, HackathonResponse, HackathonUpdate, ParticipantResponse
-from app.core.security import getCurrentUsername
+from app.core.security import getCurrentUser
 
 router = APIRouter(prefix="/hackathons", tags=["hackathons"])
 
-def getCurrentUser(username: str = Depends(getCurrentUsername), db: Session = Depends(getDB)) -> User:
+def getCurrentUserFromDB(username: str = Depends(getCurrentUser), db: Session = Depends(getDB)) -> User:
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
 @router.post("", response_model=HackathonResponse, status_code=status.HTTP_201_CREATED)
-def createHackathon(hackathonIn: HackathonCreate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def createHackathon(hackathonIn: HackathonCreate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     if hackathonIn.minTeamSize > hackathonIn.maxTeamSize:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="minTeamSize cannot be greater than maxTeamSize")
 
@@ -64,7 +64,7 @@ def getHackathon(id: int, db: Session = Depends(getDB)):
     return hackathon
 
 @router.put("/{id}", response_model=HackathonResponse)
-def updateHackathon(id: int, hackathonIn: HackathonUpdate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def updateHackathon(id: int, hackathonIn: HackathonUpdate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     hackathon = db.query(Hackathon).filter(Hackathon.id == id).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")
@@ -87,7 +87,7 @@ def updateHackathon(id: int, hackathonIn: HackathonUpdate, db: Session = Depends
     return hackathon
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def deleteHackathon(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def deleteHackathon(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     hackathon = db.query(Hackathon).filter(Hackathon.id == id).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")
@@ -100,7 +100,7 @@ def deleteHackathon(id: int, db: Session = Depends(getDB), currentUser: User = D
     return None
 
 @router.post("/{id}/register", response_model=ParticipantResponse, status_code=status.HTTP_201_CREATED)
-def registerForHackathon(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def registerForHackathon(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     hackathon = db.query(Hackathon).filter(Hackathon.id == id).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")

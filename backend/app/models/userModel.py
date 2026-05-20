@@ -15,4 +15,4 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashedPassword = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
+    isVerified = Column("is_verified", Boolean, default=False, nullable=False)

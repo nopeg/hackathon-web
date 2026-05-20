@@ -8,11 +8,11 @@ from app.database import getDB
 from app.models.userModel import User
 from app.models.hackathonModel import Hackathon, Participant, Team
 from app.schemas.teamSchema import TeamCreate, TeamJoin, TeamResponse, TeamDetailResponse
-from app.core.security import getCurrentUsername
+from app.core.security import getCurrentUser
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 
-def getCurrentUser(username: str = Depends(getCurrentUsername), db: Session = Depends(getDB)) -> User:
+def getCurrentUserFromDB(username: str = Depends(getCurrentUser), db: Session = Depends(getDB)) -> User:
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
@@ -27,14 +27,14 @@ def generateInviteCode(db: Session) -> str:
             return code
 
 @router.post("", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
-def createTeam(teamIn: TeamCreate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def createTeam(teamIn: TeamCreate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     hackathon = db.query(Hackathon).filter(Hackathon.id == teamIn.hackathonId).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")
-        
+
     if hackathon.organizerId == currentUser.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Creators cannot create teams for their own hackathons")
-        
+
     if hackathon.maxTeamSize <= 1:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Teams are disabled for this hackathon")
 
@@ -64,7 +64,7 @@ def createTeam(teamIn: TeamCreate, db: Session = Depends(getDB), currentUser: Us
     return newTeam
 
 @router.post("/join", response_model=TeamResponse)
-def joinTeam(teamJoinIn: TeamJoin, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def joinTeam(teamJoinIn: TeamJoin, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     team = db.query(Team).filter(Team.inviteCode == teamJoinIn.inviteCode).first()
     if not team:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid invite code")
@@ -102,14 +102,14 @@ def joinTeam(teamJoinIn: TeamJoin, db: Session = Depends(getDB), currentUser: Us
     return team
 
 @router.get("/{id}", response_model=TeamDetailResponse)
-def getTeam(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def getTeam(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     team = db.query(Team).filter(Team.id == id).first()
     if not team:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
     return team
 
 @router.post("/{id}/leave", status_code=status.HTTP_204_NO_CONTENT)
-def leaveTeam(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUser)):
+def leaveTeam(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
     team = db.query(Team).filter(Team.id == id).first()
     if not team:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")

@@ -1,21 +1,29 @@
+import os
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 class Settings(BaseSettings):
-    secretKey: str = "31b60b1e2545431cb25da16dd86b767f93e76754f1fe6aba8363b31ddb1af098"
-    algorithm: str = "HS256"
-    accessTokenExpireMinutes: int = 30
+    secretKey: str = Field(alias="SECRET_KEY")
+    algorithm: str = Field(alias="ALGORITHM")
+    accessTokenExpireMinutes: int = Field(alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
-    dbUser: str = Field(default="hackathon", alias="DB_USER")
-    dbPassword: str = Field(default="password", alias="DB_PASSWORD")
-    dbName: str = Field(default="hackathon_db", alias="DB_NAME")
-    dbHost: str = Field(default="db", alias="DB_HOST")
-    dbPort: str = Field(default="5432", alias="DB_PORT")
+    dbUser: str = Field(alias="DB_USER")
+    dbPassword: str = Field(alias="DB_PASSWORD")
+    dbName: str = Field(alias="DB_NAME")
+    dbHost: str = Field(alias="DB_HOST")
+    dbPort: str = Field(alias="DB_PORT")
 
-    databaseUrl: str | None = None
+    smtpHost: str = Field(default="", alias="SMTP_HOST")
+    smtpPort: int = Field(default=0, alias="SMTP_PORT")
+    smtpUser: str = Field(default="", alias="SMTP_USER")
+    smtpPassword: str = Field(default="", alias="SMTP_PASSWORD")
+
+    databaseUrl: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
+        env_file_encoding="utf-8",
         extra="ignore"
     )
 
