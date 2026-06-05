@@ -10,3 +10,9 @@ python-dotenv
 python-jose[cryptography]
 bcrypt
 python-multipart
+
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock
+httpx

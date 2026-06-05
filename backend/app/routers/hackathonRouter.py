@@ -24,11 +24,17 @@ def createHackathon(hackathonIn: HackathonCreate, db: Session = Depends(getDB), 
 
     now = datetime.now(timezone.utc)
     reg_start = hackathonIn.registrationStart
+    start_date = hackathonIn.startDate
+
     if reg_start.tzinfo is None:
         reg_start = reg_start.replace(tzinfo=timezone.utc)
+    if start_date.tzinfo is None:
+        start_date = start_date.replace(tzinfo=timezone.utc)
 
     if reg_start < now:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration start cannot be in the past")
+    if reg_start >= start_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration start must be before start date")
 
     newHackathon = Hackathon(
         title=hackathonIn.title,
@@ -113,9 +119,13 @@ def registerForHackathon(id: int, db: Session = Depends(getDB), currentUser: Use
     if reg_start.tzinfo is None:
         reg_start = reg_start.replace(tzinfo=timezone.utc)
 
+    start_date = hackathon.startDate
+    if start_date.tzinfo is None:
+        start_date = start_date.replace(tzinfo=timezone.utc)
+
     if now < reg_start:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration has not started yet")
-    if now > hackathon.startDate:
+    if now > start_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration closed, hackathon already started")
 
     alreadyRegistered = db.query(Participant).filter(

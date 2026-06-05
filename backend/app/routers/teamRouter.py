@@ -106,7 +106,31 @@ def getTeam(id: int, db: Session = Depends(getDB), currentUser: User = Depends(g
     team = db.query(Team).filter(Team.id == id).first()
     if not team:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
-    return team
+    
+    participants = db.query(Participant).filter(Participant.teamId == team.id).all()
+    members = []
+    for p in participants:
+        user = db.query(User).filter(User.id == p.userId).first()
+        members.append({
+            "id": p.id,
+            "userId": p.userId,
+            "contextRole": p.contextRole,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email
+            }
+        })
+    
+    return TeamDetailResponse(
+        id=team.id,
+        name=team.name,
+        inviteCode=team.inviteCode,
+        hackathonId=team.hackathonId,
+        creatorId=team.creatorId,
+        createdAt=team.createdAt,
+        members=members
+    )
 
 @router.post("/{id}/leave", status_code=status.HTTP_204_NO_CONTENT)
 def leaveTeam(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):

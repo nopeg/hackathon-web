@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -14,16 +14,14 @@ class TeamMemberUserResponse(BaseModel):
     username: str
     email: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TeamMemberResponse(BaseModel):
     id: int
     userId: int
     user: TeamMemberUserResponse
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TeamResponse(BaseModel):
     id: int
@@ -33,11 +31,9 @@ class TeamResponse(BaseModel):
     creatorId: int
     createdAt: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TeamDetailResponse(TeamResponse):
     members: List[TeamMemberResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

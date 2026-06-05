@@ -39,7 +39,14 @@ async def register(userIn: UserCreate, request: Request, db: Session = Depends(g
     db.commit()
 
     baseUrl = f"{request.headers.get('x-forwarded-proto', 'http')}://{request.headers.get('host', 'localhost')}"
-    sendVerificationEmail(newUser.email, token, baseUrl)
+    
+    try:
+        sendVerificationEmail(newUser.email, token, baseUrl)
+    except Exception as e:
+        db.delete(newUser)
+        db.delete(dbToken)
+        db.commit()
+        raise HTTPException(status_code=400, detail=f"Failed to send verification email: {str(e)}")
 
     return newUser
 
@@ -74,12 +81,22 @@ def verifyEmail(token: str, db: Session = Depends(getDB)):
         email = payload.get("sub")
         if not email:
             raise HTTPException(400, "Invalid token")
+        
         dbToken = db.query(VerificationToken).filter(VerificationToken.token == token).first()
-        if not dbToken or dbToken.expiresAt < datetime.now(timezone.utc):
-            raise HTTPException(400, "Token expired or invalid")
+        if not dbToken:
+            raise HTTPException(400, "Token not found")
+        
+        expires_at = dbToken.expiresAt
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(400, "Token expired")
+        
         user = db.query(User).filter(User.email == email).first()
         if not user:
             raise HTTPException(404, "User not found")
+        
         user.isVerified = True
         db.delete(dbToken)
         db.commit()
@@ -92,5 +109,7 @@ def verifyEmail(token: str, db: Session = Depends(getDB)):
             "username": user.username,
             "email": user.email
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(400, str(e))
