@@ -116,8 +116,13 @@ async def test_join_team_invalid_invite_code(client, test_user):
 
 @pytest.mark.asyncio
 async def test_join_team_full(client, db_session, test_hackathon):
+    from app.models.hackathonModel import Hackathon
     hackathon_id = test_hackathon["id"]
-    set_registration_past(db_session, hackathon_id)
+    
+    hackathon = db_session.query(Hackathon).filter(Hackathon.id == hackathon_id).first()
+    hackathon.registrationStart = datetime.now(timezone.utc) - timedelta(days=1)
+    hackathon.maxTeamSize = 2
+    db_session.commit()
     
     creator_data = {"username": "fullteamlead", "email": "fullteamlead@example.com", "password": "pass1234", "role": "USER"}
     await client.post("/auth/register", json=creator_data)
@@ -132,12 +137,8 @@ async def test_join_team_full(client, db_session, test_hackathon):
     await client.post(f"/hackathons/{hackathon_id}/register", headers={"Authorization": f"Bearer {creator_token}"})
     
     team_resp = await client.post("/teams", json={"name": "Full Team", "hackathonId": hackathon_id}, headers={"Authorization": f"Bearer {creator_token}"})
-    assert team_resp.status_code == 201, f"Failed to create team: {team_resp.text}"
+    assert team_resp.status_code == 201
     invite_code = team_resp.json()["inviteCode"]
-    
-    hackathon = db_session.query(Hackathon).filter(Hackathon.id == hackathon_id).first()
-    hackathon.maxTeamSize = 1
-    db_session.commit()
     
     joiner_data = {"username": "cantjoin", "email": "cantjoin@example.com", "password": "pass1234", "role": "USER"}
     await client.post("/auth/register", json=joiner_data)
@@ -151,8 +152,47 @@ async def test_join_team_full(client, db_session, test_hackathon):
     await client.post(f"/hackathons/{hackathon_id}/register", headers={"Authorization": f"Bearer {joiner_token}"})
     
     resp = await client.post("/teams/join", json={"inviteCode": invite_code}, headers={"Authorization": f"Bearer {joiner_token}"})
+    assert resp.status_code == 200
+    
+    third_data = {"username": "third", "email": "third@example.com", "password": "pass1234", "role": "USER"}
+    await client.post("/auth/register", json=third_data)
+    await asyncio.sleep(0.1)
+    third = db_session.query(User).filter(User.username == "third").first()
+    assert third is not None
+    third.isVerified = True
+    db_session.commit()
+    login_resp = await client.post("/auth/login", data={"username": "third", "password": "pass1234"})
+    third_token = login_resp.json()["access_token"]
+    await client.post(f"/hackathons/{hackathon_id}/register", headers={"Authorization": f"Bearer {third_token}"})
+    
+    resp = await client.post("/teams/join", json={"inviteCode": invite_code}, headers={"Authorization": f"Bearer {third_token}"})
     assert resp.status_code == 400
     assert "full" in resp.text
+
+@pytest.mark.asyncio
+async def test_teams_disabled_when_max_team_size_one(client, db_session, test_hackathon):
+    from app.models.hackathonModel import Hackathon
+    hackathon_id = test_hackathon["id"]
+    
+    hackathon = db_session.query(Hackathon).filter(Hackathon.id == hackathon_id).first()
+    hackathon.maxTeamSize = 1
+    hackathon.registrationStart = datetime.now(timezone.utc) - timedelta(days=1)
+    db_session.commit()
+    
+    user_data = {"username": "teamdisabled", "email": "teamdisabled@example.com", "password": "pass1234", "role": "USER"}
+    await client.post("/auth/register", json=user_data)
+    await asyncio.sleep(0.1)
+    user = db_session.query(User).filter(User.username == "teamdisabled").first()
+    assert user is not None
+    user.isVerified = True
+    db_session.commit()
+    login_resp = await client.post("/auth/login", data={"username": "teamdisabled", "password": "pass1234"})
+    token = login_resp.json()["access_token"]
+    
+    await client.post(f"/hackathons/{hackathon_id}/register", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.post("/teams", json={"name": "Disabled Team", "hackathonId": hackathon_id}, headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 400
+    assert "Teams are disabled" in resp.text
 
 @pytest.mark.asyncio
 async def test_get_team_details(client, db_session, test_hackathon):

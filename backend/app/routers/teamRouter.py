@@ -76,6 +76,9 @@ def joinTeam(teamJoinIn: TeamJoin, db: Session = Depends(getDB), currentUser: Us
     if hackathon.organizerId == currentUser.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Creators cannot join teams in their own hackathons")
 
+    if hackathon.maxTeamSize <= 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Teams are disabled for this hackathon")
+
     currentTeamMembersCount = db.query(Participant).filter(Participant.teamId == team.id).count()
     if currentTeamMembersCount >= hackathon.maxTeamSize:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Team is full")
