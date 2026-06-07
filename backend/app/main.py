@@ -1,9 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.security import OAuth2PasswordRequestForm
 import os
-from app.routers import authRouter, hackathonRouter, teamRouter, editorRouter, userRouter
+from app.routers import authRouter, hackathonRouter, teamRouter, editorRouter, userRouter, adminRouter
+from app.core.security import createAccessToken, verifyPassword
+from app.database import getDB
+from sqlalchemy.orm import Session
+from app.models.userModel import User
 
 app = FastAPI(title="Hackathon Platform API", version="1.0.0")
 
@@ -20,6 +25,29 @@ app.include_router(hackathonRouter.router)
 app.include_router(teamRouter.router)
 app.include_router(editorRouter.router)
 app.include_router(userRouter.router)
+app.include_router(adminRouter.router)
+
+@app.post("/auth/token")
+def login_alias(formData: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(getDB)):
+    user = db.query(User).filter(User.username == formData.username).first()
+    if not user or not verifyPassword(formData.password, user.hashedPassword):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.isVerified:
+        raise HTTPException(
+            status_code=403,
+            detail="Email not verified. Please check your email."
+        )
+    if user.isBanned:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been banned."
+        )
+    accessToken = createAccessToken(data={"sub": user.username})
+    return {"access_token": accessToken, "token_type": "bearer"}
 
 os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")

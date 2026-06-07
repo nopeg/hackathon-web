@@ -16,3 +16,4 @@ class User(Base):
     hashedPassword = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     isVerified = Column("is_verified", Boolean, default=False, nullable=False)
+    isBanned = Column("is_banned", Boolean, default=False, nullable=False)

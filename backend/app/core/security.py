@@ -9,7 +9,7 @@ from app.core.config import settingsInstance
 from app.database import getDB
 from app.models.userModel import User
 
-oauth2Scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2Scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 def hashPassword(password: str) -> str:
     passwordBytes = password.encode('utf-8')
@@ -47,8 +47,15 @@ def getCurrentUser(token: str = Depends(oauth2Scheme), db: Session = Depends(get
         if username is None:
             raise credentialsException
         user = db.query(User).filter(User.username == username).first()
-        if not user or not user.isVerified:
+        if not user or not user.isVerified or user.isBanned:
             raise credentialsException
         return username
     except JWTError:
         raise credentialsException
+
+def getCurrentUserWithRole(token: str = Depends(oauth2Scheme), db: Session = Depends(getDB)) -> User:
+    username = getCurrentUser(token, db)
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user

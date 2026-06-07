@@ -26,7 +26,8 @@ async def register(userIn: UserCreate, request: Request, db: Session = Depends(g
         email=userIn.email,
         hashedPassword=hashed,
         role=userIn.role,
-        isVerified=False
+        isVerified=False,
+        isBanned=False
     )
     db.add(newUser)
     db.commit()
@@ -63,6 +64,11 @@ def login(formData: OAuth2PasswordRequestForm = Depends(), db: Session = Depends
         raise HTTPException(
             status_code=403,
             detail="Email not verified. Please check your email."
+        )
+    if user.isBanned:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been banned."
         )
     accessToken = createAccessToken(data={"sub": user.username})
     return {"access_token": accessToken, "token_type": "bearer"}
