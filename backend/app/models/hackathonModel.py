@@ -1,6 +1,7 @@
 import enum
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.sql import func
 from app.database import Base
 
 class VotingType(str, enum.Enum):
@@ -41,6 +42,7 @@ class Participant(Base):
     userId = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     teamId = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     contextRole = Column(String, default="PARTICIPANT", nullable=False)
+    registrationDate = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 class Team(Base):
     __tablename__ = "teams"

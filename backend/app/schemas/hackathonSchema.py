@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional, List
-from app.models.hackathonModel import VotingType, ContextRole
+from typing import Optional
+from app.models.enums import VotingType, ContextRole
 
 class HackathonBase(BaseModel):
     title: str
@@ -46,13 +46,23 @@ class HackathonResponse(HackathonBase):
     id: int
     currentParticipants: int
     organizerId: int
+    status: int
+
+class HackathonSimpleResponse(BaseModel):
+    id: int
+    title: str
+    startDate: datetime
+    endDate: datetime
+    status: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 class ParticipantResponse(BaseModel):
     id: int
     hackathonId: int
     userId: int
     teamId: Optional[int] = None
-    contextRole: ContextRole
+    contextRole: str
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 

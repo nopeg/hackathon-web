@@ -23,3 +23,6 @@ test.db-journal
 .pytest_cache/
 .coverage
 htmlcov/
+
+static/uploads/*
+!static/uploads/.gitkeep

@@ -13,3 +13,9 @@ class UserRole(str, enum.Enum):
     USER = "USER"
     MODERATOR = "MODERATOR"
     ADMIN = "ADMIN"
+
+class HackathonStatus(int, enum.Enum):
+    PLANNED = 0
+    REGISTRATION = 1
+    ACTIVE = 2
+    COMPLETED = 3

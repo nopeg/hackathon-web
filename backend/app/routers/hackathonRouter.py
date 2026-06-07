@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from app.database import getDB
 from app.models.userModel import User
 from app.models.hackathonModel import Hackathon, Participant
+from app.models.enums import HackathonStatus
 from app.schemas.hackathonSchema import HackathonCreate, HackathonResponse, HackathonUpdate, ParticipantResponse
 from app.core.security import getCurrentUser
 
@@ -16,6 +17,49 @@ def getCurrentUserFromDB(username: str = Depends(getCurrentUser), db: Session = 
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
+
+def compute_status(hackathon: Hackathon) -> HackathonStatus:
+    now = datetime.now(timezone.utc)
+    start_date = hackathon.startDate
+    end_date = hackathon.endDate
+    reg_start = hackathon.registrationStart
+
+    if start_date.tzinfo is None:
+        start_date = start_date.replace(tzinfo=timezone.utc)
+    if end_date.tzinfo is None:
+        end_date = end_date.replace(tzinfo=timezone.utc)
+    if reg_start.tzinfo is None:
+        reg_start = reg_start.replace(tzinfo=timezone.utc)
+
+    if now > end_date:
+        return HackathonStatus.COMPLETED
+    if now >= start_date:
+        return HackathonStatus.ACTIVE
+    if now >= reg_start:
+        return HackathonStatus.REGISTRATION
+    return HackathonStatus.PLANNED
+
+def apply_status_to_response(hackathon: Hackathon) -> dict:
+    return {
+        "id": hackathon.id,
+        "title": hackathon.title,
+        "description": hackathon.description,
+        "prizePool": hackathon.prizePool,
+        "location": hackathon.location,
+        "isOnline": hackathon.isOnline,
+        "isPrivate": hackathon.isPrivate,
+        "votingType": hackathon.votingType,
+        "startDate": hackathon.startDate,
+        "endDate": hackathon.endDate,
+        "registrationStart": hackathon.registrationStart,
+        "maxParticipants": hackathon.maxParticipants,
+        "minTeamSize": hackathon.minTeamSize,
+        "maxTeamSize": hackathon.maxTeamSize,
+        "imageUrl": hackathon.imageUrl,
+        "currentParticipants": hackathon.currentParticipants,
+        "organizerId": hackathon.organizerId,
+        "status": compute_status(hackathon).value
+    }
 
 @router.post("", response_model=HackathonResponse, status_code=status.HTTP_201_CREATED)
 def createHackathon(hackathonIn: HackathonCreate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
@@ -56,18 +100,19 @@ def createHackathon(hackathonIn: HackathonCreate, db: Session = Depends(getDB), 
     db.add(newHackathon)
     db.commit()
     db.refresh(newHackathon)
-    return newHackathon
+    return apply_status_to_response(newHackathon)
 
 @router.get("", response_model=List[HackathonResponse])
 def getHackathons(skip: int = 0, limit: int = 10, db: Session = Depends(getDB)):
-    return db.query(Hackathon).order_by(Hackathon.startDate.asc()).offset(skip).limit(limit).all()
+    hackathons = db.query(Hackathon).order_by(Hackathon.startDate.asc()).offset(skip).limit(limit).all()
+    return [apply_status_to_response(h) for h in hackathons]
 
 @router.get("/{id}", response_model=HackathonResponse)
 def getHackathon(id: int, db: Session = Depends(getDB)):
     hackathon = db.query(Hackathon).filter(Hackathon.id == id).first()
     if not hackathon:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hackathon not found")
-    return hackathon
+    return apply_status_to_response(hackathon)
 
 @router.put("/{id}", response_model=HackathonResponse)
 def updateHackathon(id: int, hackathonIn: HackathonUpdate, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
@@ -90,7 +135,7 @@ def updateHackathon(id: int, hackathonIn: HackathonUpdate, db: Session = Depends
 
     db.commit()
     db.refresh(hackathon)
-    return hackathon
+    return apply_status_to_response(hackathon)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def deleteHackathon(id: int, db: Session = Depends(getDB), currentUser: User = Depends(getCurrentUserFromDB)):
@@ -118,13 +163,12 @@ def registerForHackathon(id: int, db: Session = Depends(getDB), currentUser: Use
     reg_start = hackathon.registrationStart
     if reg_start.tzinfo is None:
         reg_start = reg_start.replace(tzinfo=timezone.utc)
+    if now < reg_start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration has not started yet")
 
     start_date = hackathon.startDate
     if start_date.tzinfo is None:
         start_date = start_date.replace(tzinfo=timezone.utc)
-
-    if now < reg_start:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration has not started yet")
     if now > start_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration closed, hackathon already started")
 
@@ -138,10 +182,24 @@ def registerForHackathon(id: int, db: Session = Depends(getDB), currentUser: Use
     if hackathon.maxParticipants is not None and hackathon.currentParticipants >= hackathon.maxParticipants:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Hackathon is full")
 
-    participant = Participant(hackathonId=id, userId=currentUser.id, teamId=None, contextRole="PARTICIPANT")
+    participant = Participant(
+        hackathonId=id,
+        userId=currentUser.id,
+        teamId=None,
+        contextRole="PARTICIPANT",
+        registrationDate=datetime.now(timezone.utc)
+    )
     hackathon.currentParticipants += 1
 
     db.add(participant)
     db.commit()
     db.refresh(participant)
-    return participant
+
+    return {
+        "id": participant.id,
+        "hackathonId": participant.hackathonId,
+        "userId": participant.userId,
+        "teamId": participant.teamId,
+        "contextRole": participant.contextRole,
+        "registrationDate": participant.registrationDate
+    }
